@@ -86,7 +86,7 @@ void call(body) {
         String nugetRepository = env.NUGET
         String dockerPasswordId = env.DOCKER_CREDENTIALID
         String nugetKey = env.NUGET_KEY
-        
+
          stage('Build Mode') {
             echo 'Build Mode started'
 
@@ -142,6 +142,10 @@ void call(body) {
 
          }
     }
+}
+
+String cleanBranchName(String branch) {
+    return branch.replace('/', '-')
 }
 
 /* groovylint-disable-next-line MethodReturnTypeRequired, NoDef */
