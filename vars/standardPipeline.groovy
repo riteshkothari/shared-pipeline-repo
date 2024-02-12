@@ -135,14 +135,14 @@ def getVersionInformation(String branch, String branchType, ApplicationConstants
 
     echo "buildPropsExists:${buildPropsExists} \nbuildPropsVersion:${buildPropsVersion}\nPackage.json Count:${packageJsonCount}\npackageJsonCountStr:${packageJsonCountStr}"
 
-    // validate(gitHeadTag, buildPropsExists,
-    //     packageJsonExists, buildPropsVersion, packageJsonVersion, mode)
+    validate(gitHeadTag, buildPropsExists,
+        packageJsonExists, buildPropsVersion, packageJsonVersion, mode)
 
     commitId = sh(script: 'git rev-parse HEAD', returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
 
-    // version = getVersion(branch, gitHeadTag,
-    //     buildPropsExists, packageJsonExists,
-    //     buildPropsVersion, packageJsonVersion)
+    version = getVersion(branch, gitHeadTag,
+        buildPropsExists, packageJsonExists,
+        buildPropsVersion, packageJsonVersion)
 
     // versionSuffix = getVersionSuffix(gitHeadTag, branchType, mode)
     // dockerImageTag = getDockerImageTag(version, versionSuffix,branchType)
@@ -166,5 +166,97 @@ def getVersionInformation(String branch, String branchType, ApplicationConstants
 
     // return [commitId, version, versionSuffix, dockerImageTag, buildPropsExists]
 
-    return [commitId, "1.0.0", "v", "t-image", buildPropsExists]
+    return [commitId, version, "v", "t-image", buildPropsExists]
+}
+
+// This is to validate the code base before proceeding with build steps.
+// In the interest of performance, avoid xml and json parsing and instead rely on text extraction even though it may not be rigorously accurate
+/* groovylint-disable-next-line ParameterCount */
+void validate(String gitHeadTag, Boolean buildPropsExists,
+             Boolean packageJsonExists, String buildPropsVersion, String packageJsonVersion, ApplicationConstants.ModeType mode) {
+    String errorMessage = ''
+    boolean isInvalid = false
+
+    // Directory.Build.props OR package.json MUST exist
+    if (!buildPropsExists && !packageJsonExists) {
+        isInvalid = true
+        errorMessage = errorMessage + 'Found neither Directory.Build.props nor package.json. Aborting.'
+    }
+
+    // For hybrid repositories, Directory.Build.props and package.json versions must match
+    if (!isInvalid && buildPropsExists && packageJsonExists && buildPropsVersion != packageJsonVersion) {
+        isInvalid = true
+        errorMessage = errorMessage + 'Mismatch between Directory.Build.props version (' + buildPropsVersion + ') and package.json version (' + packageJsonVersion + '). Aborting.'
+    }
+
+    // Directory.Build.props, if present, MUST contain a value for VersionPrefix
+    if (!isInvalid && buildPropsExists && buildPropsVersion == '') {
+        isInvalid = true
+        errorMessage = errorMessage + 'Directory.Build.props does not contain VersionPrefix. Aborting.'
+    }
+
+    // Directory.Build.props, if present, MUST NOT contain a value for VersionSuffix
+    if (!isInvalid && buildPropsExists &&
+            ApplicationConstants.ZEROSTRING != sh(script: "grep '<.*VersionSuffix.*>[0-9].*</.*VersionSuffix>' Directory.Build.props | wc -l", returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
+    ) {
+        isInvalid = true
+        errorMessage = errorMessage + 'Directory.Build.props MUST NOT contain a value for VersionSuffix. Aborting.'
+    }
+
+    // VersionPrefix and VersionSuffix must NOT be present in individual csproj files
+    if (!isInvalid && buildPropsExists && ApplicationConstants.ZEROSTRING != sh(script: 'find . -type f -name *.csproj|xargs grep -l -e VersionPrefix -e VersionSuffix|wc -l', returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')) {
+        isInvalid = true
+        errorMessage = errorMessage + 'csproj file must not contain VersionPrefix or VersionSuffix. Aborting.'
+    }
+
+    // For master branch, if HEAD is tagged, and Directory.Build.props is present, HEAD tag MUST match VersionPrefix
+    if (!isInvalid && mode == ApplicationConstants.ModeType.PRODUCTIONREADY && gitHeadTag != '' && buildPropsExists && gitHeadTag != buildPropsVersion) {
+        isInvalid = true
+        errorMessage = "${errorMessage} Mismatch between git HEAD tag (${gitHeadTag}) and Directory.Build.props VersionPrefix (${buildPropsVersion}). Aborting."
+    }
+
+    // For master branch, if HEAD is tagged, and package.json is present, HEAD tag must match version
+    if (!isInvalid && mode == ApplicationConstants.ModeType.PRODUCTIONREADY && gitHeadTag != '' && packageJsonExists && gitHeadTag != packageJsonVersion) {
+        isInvalid = true
+        errorMessage = "${errorMessage} Mismatch between git HEAD tag (${gitHeadTag}) and package.json version (${packageJsonVersion}). Aborting."
+    }
+
+    if (!isInvalid && mode == ApplicationConstants.ModeType.PRODUCTIONREADY && buildPropsExists) {
+        if (ApplicationConstants.ZEROSTRING != sh(script: "find . -type f -name *.csproj|xargs grep '<PackageReference.*Include.*LendFoundry.*Version.*-.*/>'|wc -l", returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
+                || ApplicationConstants.ZEROSTRING != sh(script: "find . -type f -name *.csproj|xargs grep '<PackageReference.*Include.*LMS.*Version.*-.*/>'|wc -l", returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
+                || ApplicationConstants.ZEROSTRING != sh(script: "find . -type f -name *.csproj|xargs grep '<PackageReference.*Include.*CreditExchange.*Version.*-.*/>'|wc -l", returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
+                || ApplicationConstants.ZEROSTRING != sh(script: "find . -type f -name *.csproj|xargs grep '<PackageReference.*Include.*Fc360.*Version.*-.*/>'|wc -l", returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
+                || ApplicationConstants.ZEROSTRING != sh(script: "find . -type f -name *.csproj|xargs grep '<PackageReference.*Include.*Docitt.*Version.*-.*/>'|wc -l", returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
+        ) {
+            isInvalid = true
+            errorMessage = errorMessage + 'The csproj files must not contain invalid /Project/PackageReference@Version values for master branch. Aborting.'
+        }
+    }
+
+    if (isInvalid) {
+        echo errorMessage
+        currentBuild.result = ApplicationConstants.ABORTED
+        fNotify(errorMessage)
+        error(errorMessage)
+    }
+}
+
+// It is expected that getVersion() would be called after validate()
+/* groovylint-disable-next-line ParameterCount */
+String getVersion(String branch, String gitHeadTag, Boolean buildPropsExists, Boolean packageJsonExists, String buildPropsVersion, String packageJsonVersion) {
+    if (ApplicationConstants.MASTER == branch && gitHeadTag != '') {
+        return gitHeadTag
+    }
+    if (ApplicationConstants.MASTER == branch && gitHeadTag == '' && buildPropsExists) {
+        return buildPropsVersion
+    }
+    if (ApplicationConstants.MASTER == branch && gitHeadTag == '' && packageJsonExists) {
+        return packageJsonVersion
+    }
+    if (ApplicationConstants.MASTER != branch && buildPropsExists) {
+        return buildPropsVersion
+    }
+    if (ApplicationConstants.MASTER != branch && packageJsonExists) {
+        return packageJsonVersion
+    }
 }
