@@ -43,4 +43,21 @@ void call(body) {
     ApplicationConstants.ModeType mode = ApplicationConstants.ModeType.FEATURE_BRANCH_BUILD
     String branch = env.BRANCH_NAME
     echo 'Pulling... Branch : ' + branch
+
+    String branchType = ''
+
+    // Get the merge request ID
+    def mergeRequestId = env.gitlabMergeRequestId
+    echo 'gitlabMergeRequestId... ' + mergeRequestId
+
+    if (config.docker_targets == null) {
+        echo 'config is empty'
+        config.docker_targets = []
+    }
+
+    node {
+         stage('Build Mode') {
+            echo 'Build Mode started'
+         }
+    }
 }
