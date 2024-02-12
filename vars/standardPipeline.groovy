@@ -143,6 +143,30 @@ void call(body) {
             echo "commitId:${commitId}\ndockerImageTag: ${dockerImageTag}\n versionSuffix:${versionSuffix}\nversion:${version}"
 
          }
+
+         stage('Check') {
+            def projects = sh(script: 'find . -type f -name "*.csproj" | sed "s/.csproj$//"', returnStdout: true).trim().split('\n')                                
+            projects.each { project ->
+                    if (project ==~ /.*\/obsolete\/.*/) {
+                        echo "Skipping as it contains obsolete in path .csproj file: ${project}"
+                    }
+                    else {
+                        if(project.contains("Tests")) {
+                            echo "Test build: ${project}"
+                            sh """
+                                dotnet test ${project}.csproj
+                            """
+                        }
+
+                        echo "Scaning .csproj file: ${project}"
+                        sh """
+                            dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources --configfile src/NuGet.Config && \
+                            dotnet clean -c Release -v q ${project}.csproj && \
+                            dotnet build -c Release -v q --no-restore ${project}.csproj
+                        """
+                    }
+                }
+         }
     }
 }
 
