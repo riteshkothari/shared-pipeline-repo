@@ -99,6 +99,8 @@ void call(body) {
                 error(errorMessage)
             }
 
+            echo 'shouldBuildDockerImage : ' + shouldBuildDockerImage
+
             (reportTmp, branch, branchType, mode) = getBuildType(branch)
 
             report = report + reportTmp
