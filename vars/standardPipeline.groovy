@@ -62,5 +62,26 @@ void call(body) {
          stage('Build Mode') {
             echo 'Build Mode started'
          }
+
+         stage('Version') {
+            echo 'Version started'
+            // added to solve the issue of jenkins building stale commits
+            step([$class: 'WsCleanup'])
+
+             //    checkout scm
+            checkout([
+                    $class: 'GitSCM',
+                    branches: scm.branches,
+                    doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+                    extensions: scm.extensions + [[$class: 'CloneOption', noTags: false, reference: '', shallow: false], [$class: 'CleanCheckout']],
+                    submoduleCfg: [],
+                    userRemoteConfigs: scm.userRemoteConfigs,
+            ])
+
+            repositoryName = scm.getUserRemoteConfigs()[0].getUrl().tokenize('/')[-1].replace('.git', '')
+            sonarProjectKey = "MA-${repositoryName}"
+            echo "Repository name: ${repositoryName}"
+
+         }
     }
 }
