@@ -144,14 +144,14 @@ def getVersionInformation(String branch, String branchType, ApplicationConstants
         buildPropsExists, packageJsonExists,
         buildPropsVersion, packageJsonVersion)
 
-    // versionSuffix = getVersionSuffix(gitHeadTag, branchType, mode)
-    // dockerImageTag = getDockerImageTag(version, versionSuffix,branchType)
+    versionSuffix = getVersionSuffix(gitHeadTag, branchType, mode)
+    dockerImageTag = getDockerImageTag(version, versionSuffix,branchType)
 
-    // if (mode == ApplicationConstants.ModeType.PRODUCTIONREADY && (gitHeadTag == null || gitHeadTag == '')) {
-    //     report = "${report}## mode: `Master build (un-tagged build)`\n"
-    //     currentBuild.result = ApplicationConstants.ABORTED
-    //     error('Aborting: Master build is un-tagged')
-    // }
+    if (mode == ApplicationConstants.ModeType.PRODUCTIONREADY && (gitHeadTag == null || gitHeadTag == '')) {
+        report = "${report}## mode: `Master build (un-tagged build)`\n"
+        currentBuild.result = ApplicationConstants.ABORTED
+        error('Aborting: Master build is un-tagged')
+    }
 
     // withCredentials([string(credentialsId: "MA-SonarQubeToken", variable: 'SONARQUBE_KEY')]) {
     //     if (buildPropsExists) {
@@ -163,10 +163,7 @@ def getVersionInformation(String branch, String branchType, ApplicationConstants
     //     }
     // }
 
-
-    // return [commitId, version, versionSuffix, dockerImageTag, buildPropsExists]
-
-    return [commitId, version, "v", "t-image", buildPropsExists]
+    return [commitId, version, versionSuffix, dockerImageTag, buildPropsExists]
 }
 
 // This is to validate the code base before proceeding with build steps.
@@ -259,4 +256,24 @@ String getVersion(String branch, String gitHeadTag, Boolean buildPropsExists, Bo
     if (ApplicationConstants.MASTER != branch && packageJsonExists) {
         return packageJsonVersion
     }
+}
+
+String getVersionSuffix(String gitHeadTag, String branchType, ApplicationConstants.ModeType mode) {
+    if (ApplicationConstants.ModeType.PRODUCTIONREADY == mode && gitHeadTag != '') {
+        return ''
+    }
+
+    String commitTs = sh(script: 'git show -s --format=%ct', returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
+    Long commitMs = Long.valueOf(commitTs) * ApplicationConstants.SECONDSINMS
+    String commitTime = new Date(commitMs).format('yyyyMMdd-HHmmss', TimeZone.getTimeZone('America/Los_Angeles')) + 'PST'
+    String shortCommitId = sh(script: 'git rev-parse --short HEAD', returnStdout: true).toString().replace(ApplicationConstants.NEWLINE, '')
+
+    return "${branchType}-${commitTime}-${shortCommitId}"
+}
+
+String getDockerImageTag(String version, String versionSuffix,branchType) {
+    if (versionSuffix == '') {
+        return version
+    }
+    return versionSuffix.replace(branchType,"${branchType}-${version}")
 }
