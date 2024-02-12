@@ -61,6 +61,28 @@ void call(body) {
     node {
          stage('Build Mode') {
             echo 'Build Mode started'
+
+            // Early exit
+            if (!(shouldBuildDockerImage || shouldBuildNugets || shouldBuildNpm)) {
+                String errorMessage = 'No build targets defined (nugets / docker any one must be provided)'
+                echo errorMessage
+                currentBuild.result = ApplicationConstants.ABORTED
+                fNotify("Build stage failed: ${errorMessage}")
+                error(errorMessage)
+            }
+
+            (reportTmp, branch, branchType, mode) = getBuildType(branch)
+
+            report = report + reportTmp
+
+            if (mode == ApplicationConstants.ModeType.PRODUCTIONREADY) {
+                dockerRepository = env.DOCKER_REPO_PRODUCTION
+                nugetRepository = env.NUGET_PRODUCTION
+                dockerPasswordId = env.DOCKER_CREDENTIALID_PRODUCTION
+                nugetKey = env.NUGET_KEY_PRODUCTION
+            }
+
+            echo "Mode:${mode}\nBranch Type:${branchType}\nDocker Repository:${dockerRepository}\nNuGet Repository to push:${nugetRepository}"
          }
 
          stage('Version') {
@@ -92,6 +114,69 @@ void call(body) {
 
          }
     }
+}
+
+/* groovylint-disable-next-line MethodReturnTypeRequired, NoDef */
+def getBuildType(String branchArg) {
+
+    String branch = branchArg
+    /* groovylint-disable-next-line CouldBeSwitchStatement */
+    if (branch == ApplicationConstants.MASTER) {
+        mode = ApplicationConstants.ModeType.PRODUCTIONREADY
+        branchType = branch
+        report = '## mode: **Master build (release build)**\n\n'
+    } else if (branch == 'develop') {
+        report = '## mode: **Develop build**\n\n'
+        mode = ApplicationConstants.ModeType.DEVELOP_BRANCH_BUILD
+        branchType = branch
+    } else if (branch == 'staging') {
+        report = 'mode: `Staging build`\n'
+        mode = ApplicationConstants.ModeType.DEVELOP_BRANCH_BUILD
+        branchType = branch
+    } else if (branch == 'hotfix') {
+        report = '## mode: `Hotfix build`\n\n'
+        mode = ApplicationConstants.ModeType.HOTFIX_BRANCH_BUILD
+        branchType = branch
+    } else if (branch.contains('feature/')) { 
+        if (config.skipFeatureBuilds) {
+            currentBuild.result = ApplicationConstants.ABORTED
+            error('Aborting: Skipping Feature Build')
+        }
+        report = "## mode: `Feature build (${branch})`\n\n"
+        branch = cleanBranchName(branch)
+        mode = ApplicationConstants.ModeType.FEATURE_BRANCH_BUILD
+        branchType = 'feature'
+    } else if(env.gitlabMergeRequestId || branch.contains('MR-')) {
+        report = '## mode: **Merge Request build (mr build)**\n\n'
+        mode = ApplicationConstants.ModeType.MR_SCAN
+        branchType = 'merge-request'
+        branch = env.CHANGE_BRANCH
+
+        echo 'Pulling... merge-request-source Branch: ' + branch
+
+        // print all environment variables for debug purpose to get list of all 
+        if(branch == null) {
+            echo sh(returnStdout: true, script: 'env')
+        }
+
+    } else if (branch.contains('PR-')) {
+        report = "## mode: `Pull Request build (${branch})`\n\n"
+        branch = cleanBranchName(branch)
+        branchType = 'pull-request'
+    } else if (branch.contains(ApplicationConstants.RELEASE)) {
+        report = "## mode: `Release build (${branch})`\n\n"
+        mode = ApplicationConstants.ModeType.PRODUCTIONREADY
+        branchType = 'release'
+    } else if (branch ==~ /v(\d+)\.(\d+)\.(\d+)/) {
+        report = "## mode: `Release build (${branch})`\n\n"
+        mode = ApplicationConstants.ModeType.PRODUCTIONREADY
+        branchType = 'tag'
+    } else {
+        currentBuild.result = ApplicationConstants.ABORTED
+        error("Aborting: Unknown / untracked branch configuration ${branch}")
+    }
+
+    return [report, branch, branchType, mode]
 }
 
 /* groovylint-disable-next-line MethodReturnTypeRequired, NoDef */
