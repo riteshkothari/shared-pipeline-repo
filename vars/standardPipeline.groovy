@@ -53,6 +53,9 @@ void call(body) {
     if (config.docker_targets == null) {
         echo 'config is empty'
         config.docker_targets = []
+    } else {
+        def docker_target_size = config.docker_targets.size()
+        echo 'docker target size ' + docker_target_size
     }
 
     node {
