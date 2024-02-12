@@ -154,6 +154,9 @@ String cleanBranchName(String branch) {
 def getBuildType(String branchArg) {
 
     String branch = branchArg
+
+    echo 'Inside getBuildType: ' + branchArg
+
     /* groovylint-disable-next-line CouldBeSwitchStatement */
     if (branch == ApplicationConstants.MASTER) {
         mode = ApplicationConstants.ModeType.PRODUCTIONREADY
