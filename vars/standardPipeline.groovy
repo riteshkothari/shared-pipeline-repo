@@ -43,7 +43,6 @@ void call(body) {
     ApplicationConstants.ModeType mode = ApplicationConstants.ModeType.FEATURE_BRANCH_BUILD
     String branch = env.BRANCH_NAME
     echo 'Pulling... Branch : ' + branch
-
     String branchType = ''
 
     // Get the merge request ID
@@ -51,14 +50,43 @@ void call(body) {
     echo 'gitlabMergeRequestId... ' + mergeRequestId
 
     if (config.docker_targets == null) {
-        echo 'config is empty'
         config.docker_targets = []
-    } else {
-        def docker_target_size = config.docker_targets.size()
-        echo 'docker target size ' + docker_target_size
     }
 
+    if (config.nuget_targets == null) {
+        config.nuget_targets = []
+    }
+
+    if (config.npm_targets == null) {
+        config.npm_targets = []
+    }
+
+    if(config.publish_artifacts == null) {
+        config.publish_artifacts = []
+    }
+
+    boolean shouldBuildDockerImage = config.docker_targets.size() > ApplicationConstants.ZERO
+    boolean shouldBuildNugets = config.nuget_targets.size() > ApplicationConstants.ZERO
+    boolean shouldBuildNpm = config.npm_targets.size() > ApplicationConstants.ZERO
+    boolean shouldPublishArtifacts = config.publish_artifacts.size() > ApplicationConstants.ZERO
+
+    String commitId = ''
+    String dockerImageTag = ''
+    String version = ''
+    String versionSuffix = ''
+    String imagePod = 'base:6.0-sdk-with-java'//'base:3.1.101-sdk-with-java-2'
+    String repositoryName = ''
+    String sonarProjectKey = ''
+    String versionWithSuffix = ''
+    String sonarscanExclusions = ''
+
     node {
+
+        String dockerRepository = env.DOCKER_REPO
+        String nugetRepository = env.NUGET
+        String dockerPasswordId = env.DOCKER_CREDENTIALID
+        String nugetKey = env.NUGET_KEY
+        
          stage('Build Mode') {
             echo 'Build Mode started'
 
