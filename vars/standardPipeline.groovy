@@ -183,7 +183,7 @@ def getBuildType(String branchArg) {
         branch = cleanBranchName(branch)
         mode = ApplicationConstants.ModeType.FEATURE_BRANCH_BUILD
         branchType = 'feature'
-    } else if(env.gitlabMergeRequestId || branch.contains('MR-')) {
+    } else if(env.gitlabMergeRequestId || branch.contains('MR-') || branch.contains('PR-')) {
         echo 'Its an MR build'
         report = '## mode: **Merge Request build (mr build)**\n\n'
         mode = ApplicationConstants.ModeType.MR_SCAN
