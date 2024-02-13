@@ -149,7 +149,7 @@ void call(body) {
         stage('UnitTest') {
             echo 'UnitTest started'
             sh """
-                export PATH=$PATH:$HOME/.dotnet:$HOME/.dotnet/tools
+                export PATH=$PATH:/root/.dotnet:/root/.dotnet/tools
             """
             if(buildPropsExists) {
                 
