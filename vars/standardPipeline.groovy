@@ -144,7 +144,7 @@ void call(body) {
 
          }
 
-         stage('UnitTest') {
+        stage('UnitTest') {
             if(buildPropsExists) {
                 
                 // Get all csproj
@@ -182,7 +182,9 @@ void call(body) {
                         }
                     }
                 }
-           
+            }
+        }
+        
     }
 }
 
