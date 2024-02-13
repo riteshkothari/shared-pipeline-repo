@@ -84,6 +84,12 @@ void call(body) {
 
     node {
 
+        // Define the .NET path
+        def dotnetHome = "/root/.dotnet"
+
+        // Set the .NET path in the environment
+        env.PATH = "${dotnetHome}:${env.PATH}"
+
         String dockerRepository = env.DOCKER_REPO
         String nugetRepository = env.NUGET
         String dockerPasswordId = env.DOCKER_CREDENTIALID
@@ -148,9 +154,7 @@ void call(body) {
 
         stage('UnitTest') {
             echo 'UnitTest started'
-            sh """
-                export PATH=$PATH:/root/.dotnet:/root/.dotnet/tools
-            """
+           
             if(buildPropsExists) {
                 
                 // Get all csproj
