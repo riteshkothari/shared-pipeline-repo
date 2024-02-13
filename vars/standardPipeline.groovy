@@ -22,6 +22,8 @@ interface ApplicationConstants {
     }
 
     static final String ABORTED = 'ABORTED'
+    static final String UNSTABLE = 'UNSTABLE'
+    static final String FAILED = 'FAILED'
     static final String RELEASE = 'release/'
     static final int ZERO = 0
     static final String NEWLINE = '\n'
@@ -178,7 +180,7 @@ void call(body) {
                             // fNotify(errorMessage)
 
                             // Abort pipeline if unit test fails
-                            currentBuild.result = ApplicationConstants.ABORTED
+                            currentBuild.result = ApplicationConstants.FAILED
                             error(errorMessage)
                         }
                     }
