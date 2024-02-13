@@ -156,9 +156,9 @@ void call(body) {
                     else {
                         // Unit Test
                         try {
-                            sh """
-                                dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources --configfile src/NuGet.Config
-                            """
+                            // sh """
+                            //     dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources --configfile src/NuGet.Config
+                            // """
                             
                             if(project.contains("Tests")) {
                                 echo "Test build: ${project}"
@@ -174,7 +174,7 @@ void call(body) {
                                 2. Confirm that the tests are executing successfully. 
                             Error - """ + e.toString()
                             echo errorMessage
-                            fNotify(errorMessage)
+                            // fNotify(errorMessage)
 
                             // Abort pipeline if unit test fails
                             currentBuild.result = ApplicationConstants.ABORTED
