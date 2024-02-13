@@ -155,8 +155,7 @@ void call(body) {
          }
 
          stage('Install .NET SDK') {
-            steps {
-                // Download the .NET SDK installer script
+            // Download the .NET SDK installer script
                 sh 'wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh'
 
                 // Make the installer script executable
@@ -164,7 +163,6 @@ void call(body) {
 
                 // Run the installer script to install the .NET SDK
                 sh "/tmp/dotnet-install.sh --install-dir ${dotnetInstallationDir}"
-            }
         }
 
         stage('UnitTest') {
