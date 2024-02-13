@@ -84,7 +84,7 @@ void call(body) {
 
     node {
 
-        def dotnetInstallationDir = "${WORKSPACE}/dotnet"
+        def dotnetInstallationDir = "${HOME}/.dotnet"
 
         // // Define the .NET path
         // def dotnetHome = "/root/.dotnet"
@@ -155,7 +155,8 @@ void call(body) {
          }
 
          stage('Install .NET SDK') {
-            // Download the .NET SDK installer script
+            def sdkInstalled = fileExists("${dotnetInstallationDir}/dotnet")
+            
                 sh 'wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh'
 
                 // Make the installer script executable
