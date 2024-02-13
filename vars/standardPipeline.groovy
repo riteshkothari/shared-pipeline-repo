@@ -188,16 +188,9 @@ void call(body) {
                             
                             if(project.contains("Tests")) {
                                 echo "Test build: ${project}" 
-                                // sh """
-                                //     ${dotnetInstallationDir}/dotnet test ${project}.csproj
-                                // """
-
-                                def testResult = sh(returnStatus: true, script: "${dotnetInstallationDir}/dotnet test ${project}.csproj")
-                                if (testResult == 0) {
-                                    echo 'All unit tests passed!'
-                                } else {
-                                    error 'Some unit tests failed!'
-                                }
+                                sh """
+                                    ${dotnetInstallationDir}/dotnet test ${project}.csproj
+                                """
                             }
                         /* groovylint-disable-next-line CatchException */
                         } catch (Exception e) {
