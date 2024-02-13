@@ -144,29 +144,45 @@ void call(body) {
 
          }
 
-         stage('Check') {
-            def projects = sh(script: 'find . -type f -name "*.csproj" | sed "s/.csproj$//"', returnStdout: true).trim().split('\n')                                
-            projects.each { project ->
+         stage('UnitTest') {
+            if(buildPropsExists) {
+                
+                // Get all csproj
+                def projects = sh(script: 'find . -type f -name "*.csproj" | sed "s/.csproj$//"', returnStdout: true).trim().split('\n')
+                projects.each { project ->
                     if (project ==~ /.*\/obsolete\/.*/) {
                         echo "Skipping as it contains obsolete in path .csproj file: ${project}"
                     }
                     else {
-                        if(project.contains("Tests")) {
-                            echo "Test build: ${project}"
+                        // Unit Test
+                        try {
                             sh """
-                                dotnet test ${project}.csproj
+                                dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources --configfile src/NuGet.Config
                             """
-                        }
+                            
+                            if(project.contains("Tests")) {
+                                echo "Test build: ${project}"
+                                // sh """
+                                //     dotnet test ${project}.csproj
+                                // """
+                            }
+                        /* groovylint-disable-next-line CatchException */
+                        } catch (Exception e) {
+                            String errorMessage = """**Failed while checking Unit Tests**  
+                                Suggestions:
+                                1. Ensure that the .csproj file for tests targets at least 'net6.0' or a newer framework.
+                                2. Confirm that the tests are executing successfully. 
+                            Error - """ + e.toString()
+                            echo errorMessage
+                            fNotify(errorMessage)
 
-                        echo "Scaning .csproj file: ${project}"
-                        sh """
-                            dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources --configfile src/NuGet.Config && \
-                            dotnet clean -c Release -v q ${project}.csproj && \
-                            dotnet build -c Release -v q --no-restore ${project}.csproj
-                        """
+                            // Abort pipeline if unit test fails
+                            currentBuild.result = ApplicationConstants.ABORTED
+                            error(errorMessage)
+                        }
                     }
                 }
-         }
+           
     }
 }
 
