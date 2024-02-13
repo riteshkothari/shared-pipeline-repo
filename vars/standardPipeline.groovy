@@ -88,7 +88,7 @@ void call(body) {
         def dotnetHome = "/root/.dotnet"
 
         // Set the .NET path in the environment
-        env.PATH = "${dotnetHome}:${env.PATH}"
+        env.PATH = "${dotnetHome}:${dotnetHome}/tools:${env.PATH}"
 
         String dockerRepository = env.DOCKER_REPO
         String nugetRepository = env.NUGET
