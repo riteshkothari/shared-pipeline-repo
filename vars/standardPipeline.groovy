@@ -166,9 +166,9 @@ void call(body) {
                     else {
                         // Unit Test
                         try {
-                            sh """
-                                dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources --configfile src/NuGet.Config
-                            """
+                            // sh """
+                            //     dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources --configfile src/NuGet.Config
+                            // """
                             
                             if(project.contains("Tests")) {
                                 echo "Test build: ${project}"
