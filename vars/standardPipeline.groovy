@@ -182,15 +182,22 @@ void call(body) {
                     else {
                         // Unit Test
                         try {
-                            // sh """
-                            //     dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources --configfile src/NuGet.Config
-                            // """
+                            sh """
+                                ${dotnetInstallationDir}/dotnet restore ${project}.csproj --verbosity q --ignore-failed-sources
+                            """
                             
                             if(project.contains("Tests")) {
-                                echo "Test build: ${project}"
-                                sh """
-                                    ${dotnetInstallationDir}/dotnet test ${project}.csproj
-                                """
+                                echo "Test build: ${project}" 
+                                // sh """
+                                //     ${dotnetInstallationDir}/dotnet test ${project}.csproj
+                                // """
+
+                                def testResult = sh(returnStatus: true, script: "${dotnetInstallationDir}/dotnet test")
+                                if (testResult == 0) {
+                                    echo 'All unit tests passed!'
+                                } else {
+                                    error 'Some unit tests failed!'
+                                }
                             }
                         /* groovylint-disable-next-line CatchException */
                         } catch (Exception e) {
