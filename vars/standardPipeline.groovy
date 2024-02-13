@@ -180,7 +180,7 @@ void call(body) {
                             // fNotify(errorMessage)
 
                             // Abort pipeline if unit test fails
-                            currentBuild.result = ApplicationConstants.FAILED
+                            currentBuild.result = ApplicationConstants.UNSTABLE
                             error(errorMessage)
                         }
                     }
