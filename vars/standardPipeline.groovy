@@ -192,7 +192,7 @@ void call(body) {
                                 //     ${dotnetInstallationDir}/dotnet test ${project}.csproj
                                 // """
 
-                                def testResult = sh(returnStatus: true, script: "${dotnetInstallationDir}/dotnet test")
+                                def testResult = sh(returnStatus: true, script: "${dotnetInstallationDir}/dotnet test ${project}.csproj")
                                 if (testResult == 0) {
                                     echo 'All unit tests passed!'
                                 } else {
