@@ -84,7 +84,7 @@ void call(body) {
 
     node {
 
-        def dotnetInstallationDir = "/usr/local/dotnet"
+        def dotnetInstallationDir = "${WORKSPACE}/dotnet"
 
         // // Define the .NET path
         // def dotnetHome = "/root/.dotnet"
