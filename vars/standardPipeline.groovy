@@ -84,11 +84,13 @@ void call(body) {
 
     node {
 
-        // Define the .NET path
-        def dotnetHome = "/root/.dotnet"
+        def dotnetInstallationDir = "/usr/local/dotnet"
 
-        // Set the .NET path in the environment
-        env.PATH = "${dotnetHome}:${dotnetHome}/tools:${env.PATH}"
+        // // Define the .NET path
+        // def dotnetHome = "/root/.dotnet"
+
+        // // Set the .NET path in the environment
+        // env.PATH = "${dotnetHome}:${dotnetHome}/tools:${env.PATH}"
 
         String dockerRepository = env.DOCKER_REPO
         String nugetRepository = env.NUGET
@@ -152,6 +154,19 @@ void call(body) {
 
          }
 
+         stage('Install .NET SDK') {
+            steps {
+                // Download the .NET SDK installer script
+                sh 'wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh'
+
+                // Make the installer script executable
+                sh 'chmod +x /tmp/dotnet-install.sh'
+
+                // Run the installer script to install the .NET SDK
+                sh "/tmp/dotnet-install.sh --install-dir ${dotnetInstallationDir}"
+            }
+        }
+
         stage('UnitTest') {
             echo 'UnitTest started'
            
@@ -173,7 +188,7 @@ void call(body) {
                             if(project.contains("Tests")) {
                                 echo "Test build: ${project}"
                                 sh """
-                                    dotnet test ${project}.csproj
+                                    ${dotnetInstallationDir}/dotnet test ${project}.csproj
                                 """
                             }
                         /* groovylint-disable-next-line CatchException */
