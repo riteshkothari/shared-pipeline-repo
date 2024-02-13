@@ -145,6 +145,7 @@ void call(body) {
          }
 
         stage('UnitTest') {
+            echo 'UnitTest started'
             if(buildPropsExists) {
                 
                 // Get all csproj
@@ -183,6 +184,10 @@ void call(body) {
                     }
                 }
             }
+        }
+
+        stage('SonarScan') {
+            echo 'SonarScan started'
         }
         
     }
