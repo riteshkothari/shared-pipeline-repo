@@ -148,6 +148,10 @@ void call(body) {
 
         stage('UnitTest') {
             echo 'UnitTest started'
+            sh """
+                export DOTNET_ROOT=$HOME/.dotnet
+                export PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
+            """
             if(buildPropsExists) {
                 
                 // Get all csproj
